@@ -1,0 +1,2 @@
+-keepclassmembers class app.dylla.WebAppInterface { public *; }
+-keepattributes JavascriptInterface
