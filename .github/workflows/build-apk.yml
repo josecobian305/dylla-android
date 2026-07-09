@@ -5,6 +5,9 @@ on:
     branches: [master]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -33,9 +36,7 @@ jobs:
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
-        if: github.ref == 'refs/heads/master'
         with:
           tag_name: v2.0.${{ github.run_number }}
           name: Dylla v2.0.${{ github.run_number }}
           files: app/build/outputs/apk/debug/app-debug.apk
-          generate_release_notes: true
