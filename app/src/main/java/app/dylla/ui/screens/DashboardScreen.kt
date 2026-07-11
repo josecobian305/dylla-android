@@ -31,7 +31,11 @@ import app.dylla.ui.theme.*
 fun DashboardScreen(
     activeList: CallList?,
     activeCompany: Company?,
-    stages: List<FundingStage>
+    stages: List<FundingStage>,
+    onImport: () -> Unit = {},
+    onListPicker: () -> Unit = {},
+    onCompanySwitcher: () -> Unit = {},
+    onStartCalling: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -61,12 +65,12 @@ fun DashboardScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { /* Show list picker */ }) {
+                    IconButton(onClick = onListPicker) {
                         Icon(Icons.Filled.Menu, contentDescription = "Menu")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* Show import */ }) {
+                    IconButton(onClick = onImport) {
                         Icon(Icons.Filled.Add, contentDescription = "Import")
                     }
                 },
@@ -90,7 +94,7 @@ fun DashboardScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { /* Show company switcher */ },
+                        .clickable(onClick = onCompanySwitcher),
                     shape = RoundedCornerShape(14.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = DyllaBlue.copy(alpha = 0.08f)
@@ -276,7 +280,7 @@ fun DashboardScreen(
 
             // Action button
             Button(
-                onClick = { /* Import or start calling */ },
+                onClick = { if (activeList == null) onImport() else onStartCalling() },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
