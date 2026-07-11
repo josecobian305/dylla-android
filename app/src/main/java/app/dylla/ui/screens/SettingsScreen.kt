@@ -305,9 +305,9 @@ fun SettingsScreen(
                                 color = DyllaOnSurfaceSecondary.copy(alpha = 0.5f)
                             )
                         },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 3,
-                        maxLines = 6,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = DyllaBlue,
                             unfocusedBorderColor = DyllaOnSurfaceSecondary.copy(alpha = 0.3f),
