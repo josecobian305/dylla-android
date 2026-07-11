@@ -291,7 +291,7 @@ class DialerViewModel : ViewModel() {
 
     // ── Stage management ───────────────────────────────────────────
 
-    fun setStages(newStages: List<FundingStage>) {
+    fun updateStages(newStages: List<FundingStage>) {
         stages = newStages
         PersistenceManager.saveStages(stages)
     }
@@ -311,7 +311,7 @@ class DialerViewModel : ViewModel() {
         localPresenceEnabled = !localPresenceEnabled
     }
 
-    fun setActiveCompany(company: Company?) {
+    fun switchCompany(company: Company?) {
         activeCompany = company
     }
 
