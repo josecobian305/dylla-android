@@ -26,7 +26,6 @@ import app.dylla.models.FundingStage
 import app.dylla.models.UserProfile
 import app.dylla.ui.theme.*
 
-@Composable
 private val DEFAULT_TWILIO_NUMBERS = listOf(
     "+13094855348", "+16315292867", "+16316462218", "+17603779135",
     "+17604376783", "+17864609275", "+17866591675", "+17866863768",
@@ -77,7 +76,7 @@ fun SettingsScreen(
     }
 
     // Lines per batch
-    var linesPerBatch by remember { mutableIntStateOf(profile.linesPerBatch) }
+    var linesPerBatch by remember { mutableIntStateOf(prefs.getInt("lines_per_batch", 10)) }
 
     // Training dialer
     var trainingEnabled by remember { mutableStateOf(false) }
@@ -88,7 +87,7 @@ fun SettingsScreen(
     var googleSheetsConnected by remember { mutableStateOf(false) }
 
     // API Key
-    var apiKey by remember { mutableStateOf(profile.apiKey) }
+    var apiKey by remember { mutableStateOf(prefs.getString("api_key", "") ?: "") }
 
     // Auto-save Twilio settings
     LaunchedEffect(twilioSid, twilioToken, twilioPhone, twilioNumbers) {
