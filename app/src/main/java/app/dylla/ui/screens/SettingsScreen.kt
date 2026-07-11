@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -26,6 +27,16 @@ import app.dylla.models.UserProfile
 import app.dylla.ui.theme.*
 
 @Composable
+private val DEFAULT_TWILIO_NUMBERS = listOf(
+    "+13094855348", "+16315292867", "+16316462218", "+17603779135",
+    "+17604376783", "+17864609275", "+17866591675", "+17866863768",
+    "+17867309157", "+17867433012", "+17867617448", "+17868233590",
+    "+17868275320", "+17868411918", "+17868821694", "+17868823806",
+    "+17868826114", "+17869015292", "+17869015714", "+17869361571",
+    "+17869363330", "+18335746336", "+18565440458"
+)
+
+@Composable
 fun SettingsScreen(
     onManageCompanies: () -> Unit = {},
     onEditSignature: () -> Unit = {},
@@ -34,17 +45,25 @@ fun SettingsScreen(
     onVoiceDrops: () -> Unit = {},
     onGoogleSheets: () -> Unit = {},
     onLogout: () -> Unit = {},
-    userEmail: String = "user@example.com"
+    userEmail: String = ""
 ) {
-    val profile = remember { UserProfile() }
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("dylla_prefs", android.content.Context.MODE_PRIVATE) }
+    val resolvedEmail = userEmail.ifEmpty {
+        prefs.getString("dylla_user_email", "") ?: ""
+    }
+
     val stages = remember { FundingStage.defaults }
 
-    // Twilio fields
-    var twilioSid by remember { mutableStateOf(profile.twilio.sid) }
-    var twilioToken by remember { mutableStateOf(profile.twilio.token) }
-    var twilioPhone by remember { mutableStateOf(profile.twilio.number) }
+    // Twilio fields — load from prefs, pre-fill numbers only
+    var twilioSid by remember { mutableStateOf(prefs.getString("twilio_sid", "") ?: "") }
+    var twilioToken by remember { mutableStateOf(prefs.getString("twilio_token", "") ?: "") }
+    var twilioPhone by remember { mutableStateOf(prefs.getString("twilio_phone", "") ?: "") }
     var twilioNumbers by remember {
-        mutableStateOf(profile.twilio.numbers.joinToString("\n"))
+        mutableStateOf(
+            prefs.getString("twilio_numbers", null)
+                ?: DEFAULT_TWILIO_NUMBERS.joinToString("\n")
+        )
     }
     val twilioNumberCount by remember(twilioNumbers) {
         derivedStateOf {
@@ -70,6 +89,16 @@ fun SettingsScreen(
 
     // API Key
     var apiKey by remember { mutableStateOf(profile.apiKey) }
+
+    // Auto-save Twilio settings
+    LaunchedEffect(twilioSid, twilioToken, twilioPhone, twilioNumbers) {
+        prefs.edit()
+            .putString("twilio_sid", twilioSid)
+            .putString("twilio_token", twilioToken)
+            .putString("twilio_phone", twilioPhone)
+            .putString("twilio_numbers", twilioNumbers)
+            .apply()
+    }
 
     // Dialogs
     var showClearDataDialog by remember { mutableStateOf(false) }
@@ -506,7 +535,7 @@ fun SettingsScreen(
                         fontSize = 16.sp
                     )
                     Text(
-                        text = userEmail,
+                        text = resolvedEmail,
                         color = DyllaOnSurfaceSecondary,
                         fontSize = 16.sp
                     )
