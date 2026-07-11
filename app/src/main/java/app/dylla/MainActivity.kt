@@ -33,10 +33,22 @@ fun DyllaAppContent() {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("dylla_prefs", android.content.Context.MODE_PRIVATE) }
 
-    var userUid by remember { mutableStateOf(prefs.getString("dylla_user_uid", null)) }
-    var userName by remember { mutableStateOf(prefs.getString("dylla_user_name", "") ?: "") }
-    var userEmail by remember { mutableStateOf(prefs.getString("dylla_user_email", "") ?: "") }
+    val firebaseUser = remember { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser }
+
+    var userUid by remember { mutableStateOf(prefs.getString("dylla_user_uid", null) ?: firebaseUser?.uid) }
+    var userName by remember { mutableStateOf(prefs.getString("dylla_user_name", null) ?: firebaseUser?.displayName ?: "") }
+    var userEmail by remember { mutableStateOf(prefs.getString("dylla_user_email", null) ?: firebaseUser?.email ?: "") }
     var onboardingComplete by remember { mutableStateOf(prefs.getBoolean("onboarding_complete", false)) }
+
+    LaunchedEffect(userUid) {
+        if (userUid != null && firebaseUser != null) {
+            prefs.edit()
+                .putString("dylla_user_uid", userUid)
+                .putString("dylla_user_email", firebaseUser.email ?: userEmail)
+                .putString("dylla_user_name", firebaseUser.displayName ?: userName)
+                .apply()
+        }
+    }
 
     when {
         userUid == null -> {

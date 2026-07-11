@@ -48,8 +48,9 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("dylla_prefs", android.content.Context.MODE_PRIVATE) }
+    val firebaseEmail = remember { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email ?: "" }
     val resolvedEmail = userEmail.ifEmpty {
-        prefs.getString("dylla_user_email", "") ?: ""
+        prefs.getString("dylla_user_email", null) ?: firebaseEmail
     }
 
     val stages = remember { FundingStage.defaults }
