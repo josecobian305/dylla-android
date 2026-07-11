@@ -433,7 +433,7 @@ private fun PreCallContent(
             colors = ButtonDefaults.outlinedButtonColors(
                 contentColor = Color(0xFF8E8E93)
             ),
-            border = ButtonDefaults.outlinedButtonBorder(enabled = true)
+            border = ButtonDefaults.outlinedButtonBorder
         ) {
             Icon(
                 Icons.Filled.SkipNext,
@@ -458,7 +458,7 @@ private fun PreCallContent(
             colors = ButtonDefaults.outlinedButtonColors(
                 contentColor = DyllaPurple
             ),
-            border = ButtonDefaults.outlinedButtonBorder(enabled = true)
+            border = ButtonDefaults.outlinedButtonBorder
         ) {
             Icon(
                 Icons.Filled.CalendarMonth,

@@ -26,9 +26,9 @@ import app.dylla.models.IndustryType
 import app.dylla.ui.theme.*
 import java.util.UUID
 
-private sealed class ViewState {
-    data object List : ViewState()
-    data class AddEdit(val company: Company?, val isNew: Boolean) : ViewState()
+private sealed class CompanySwitcherViewState {
+    data object List : CompanySwitcherViewState()
+    data class AddEdit(val company: Company?, val isNew: Boolean) : CompanySwitcherViewState()
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -57,23 +57,23 @@ fun CompanySwitcherScreen(onBack: () -> Unit = {}) {
     var selectedCompanyId by remember {
         mutableStateOf(companies.firstOrNull { it.isDefault }?.id ?: companies.firstOrNull()?.id.orEmpty())
     }
-    var viewState by remember { mutableStateOf<ViewState>(ViewState.List) }
+    var viewState by remember { mutableStateOf<CompanySwitcherViewState>(CompanySwitcherViewState.List) }
 
     when (val state = viewState) {
-        is ViewState.List -> {
+        is CompanySwitcherViewState.List -> {
             CompanyListView(
                 companies = companies,
                 selectedCompanyId = selectedCompanyId,
                 cardShape = cardShape,
                 onBack = onBack,
                 onAdd = {
-                    viewState = ViewState.AddEdit(company = null, isNew = true)
+                    viewState = CompanySwitcherViewState.AddEdit(company = null, isNew = true)
                 },
                 onSelect = { company ->
                     selectedCompanyId = company.id
                 },
                 onEdit = { company ->
-                    viewState = ViewState.AddEdit(company = company, isNew = false)
+                    viewState = CompanySwitcherViewState.AddEdit(company = company, isNew = false)
                 },
                 onSetDefault = { company ->
                     companies = companies.map {
@@ -89,7 +89,7 @@ fun CompanySwitcherScreen(onBack: () -> Unit = {}) {
             )
         }
 
-        is ViewState.AddEdit -> {
+        is CompanySwitcherViewState.AddEdit -> {
             CompanyAddEditView(
                 existingCompany = state.company,
                 isNew = state.isNew,
@@ -114,17 +114,17 @@ fun CompanySwitcherScreen(onBack: () -> Unit = {}) {
                             }
                         }
                     }
-                    viewState = ViewState.List
+                    viewState = CompanySwitcherViewState.List
                 },
                 onCancel = {
-                    viewState = ViewState.List
+                    viewState = CompanySwitcherViewState.List
                 },
                 onDelete = { company ->
                     companies = companies.filter { it.id != company.id }
                     if (selectedCompanyId == company.id) {
                         selectedCompanyId = companies.firstOrNull()?.id.orEmpty()
                     }
-                    viewState = ViewState.List
+                    viewState = CompanySwitcherViewState.List
                 }
             )
         }

@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             DyllaTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    DyllaApp()
+                    DyllaAppContent()
                 }
             }
         }
@@ -29,7 +29,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun DyllaApp() {
+fun DyllaAppContent() {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("dylla_prefs", android.content.Context.MODE_PRIVATE) }
 

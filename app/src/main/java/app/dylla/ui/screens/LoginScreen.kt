@@ -122,7 +122,7 @@ fun LoginScreen(
                 colors = ButtonDefaults.outlinedButtonColors(
                     containerColor = Color.White
                 ),
-                border = ButtonDefaults.outlinedButtonBorder(true)
+                border = ButtonDefaults.outlinedButtonBorder
             ) {
                 Text(
                     text = "G",

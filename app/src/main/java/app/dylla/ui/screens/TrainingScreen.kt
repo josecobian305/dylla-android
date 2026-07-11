@@ -1268,7 +1268,7 @@ private fun RoleplaySessionView(
             }
 
             // Coach popup overlay
-            AnimatedVisibility(
+            androidx.compose.animation.AnimatedVisibility(
                 visible = showCoachPopup,
                 enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
                 exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),

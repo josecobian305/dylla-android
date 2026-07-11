@@ -6,6 +6,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -35,9 +36,9 @@ import java.util.UUID
 
 // ---------- View State ----------
 
-private sealed class ViewState {
-    data object List : ViewState()
-    data class Edit(val stage: FundingStage, val isNew: Boolean) : ViewState()
+private sealed class StageEditorViewState {
+    data object List : StageEditorViewState()
+    data class Edit(val stage: FundingStage, val isNew: Boolean) : StageEditorViewState()
 }
 
 // ---------- Preset Colors ----------
@@ -72,7 +73,7 @@ fun StageEditorScreen(
     onBack: () -> Unit = {}
 ) {
     var stages by remember { mutableStateOf(FundingStage.defaults.toMutableList()) }
-    var viewState by remember { mutableStateOf<ViewState>(ViewState.List) }
+    var viewState by remember { mutableStateOf<StageEditorViewState>(StageEditorViewState.List) }
     var showResetDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf<FundingStage?>(null) }
 
@@ -110,8 +111,8 @@ fun StageEditorScreen(
                         .mapIndexed { index, stage -> stage.copy(order = index) }
                         .toMutableList()
                     showDeleteDialog = null
-                    if (viewState is ViewState.Edit) {
-                        viewState = ViewState.List
+                    if (viewState is StageEditorViewState.Edit) {
+                        viewState = StageEditorViewState.List
                     }
                 }) {
                     Text("Delete", color = DyllaRed)
@@ -126,7 +127,7 @@ fun StageEditorScreen(
     }
 
     when (val state = viewState) {
-        is ViewState.List -> {
+        is StageEditorViewState.List -> {
             StageListView(
                 stages = stages.sortedBy { it.order },
                 onBack = onBack,
@@ -139,10 +140,10 @@ fun StageEditorScreen(
                         shortLabel = "",
                         color = "#007AFF"
                     )
-                    viewState = ViewState.Edit(stage = newStage, isNew = true)
+                    viewState = StageEditorViewState.Edit(stage = newStage, isNew = true)
                 },
                 onEditStage = { stage ->
-                    viewState = ViewState.Edit(stage = stage, isNew = false)
+                    viewState = StageEditorViewState.Edit(stage = stage, isNew = false)
                 },
                 onDeleteStage = { stage ->
                     showDeleteDialog = stage
@@ -184,7 +185,7 @@ fun StageEditorScreen(
             )
         }
 
-        is ViewState.Edit -> {
+        is StageEditorViewState.Edit -> {
             StageEditView(
                 stage = state.stage,
                 isNew = state.isNew,
@@ -196,9 +197,9 @@ fun StageEditorScreen(
                             if (it.id == updatedStage.id) updatedStage else it
                         }.toMutableList()
                     }
-                    viewState = ViewState.List
+                    viewState = StageEditorViewState.List
                 },
-                onCancel = { viewState = ViewState.List },
+                onCancel = { viewState = StageEditorViewState.List },
                 onDelete = if (!state.isNew) {
                     { showDeleteDialog = state.stage }
                 } else null
@@ -865,9 +866,7 @@ private fun StageEditView(
                 onClick = onCancel,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
-                border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(
-                    brush = androidx.compose.ui.graphics.SolidColor(DyllaOnSurfaceSecondary.copy(alpha = 0.2f))
-                )
+                border = BorderStroke(1.dp, DyllaOnSurfaceSecondary.copy(alpha = 0.2f))
             ) {
                 Text(
                     "Cancel",
