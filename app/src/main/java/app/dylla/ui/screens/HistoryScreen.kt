@@ -129,9 +129,9 @@ private fun CallHistoryRow(contact: Contact) {
                     fontSize = 13.sp,
                     color = DyllaOnSurfaceSecondary
                 )
-                contact.callTime?.let {
+                contact.callTime?.let { date ->
                     Text(
-                        it,
+                        java.text.SimpleDateFormat("MMM d, h:mm a", java.util.Locale.US).format(date),
                         fontSize = 12.sp,
                         color = DyllaOnSurfaceSecondary
                     )
