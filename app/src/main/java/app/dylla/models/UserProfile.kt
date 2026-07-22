@@ -49,6 +49,11 @@ data class UserProfile(
     var googleSheetsWebhookURL: String = "",
     var emailSignature: String = "",
     var apiKey: String = "",
+    var serverBaseURL: String = "https://dylla.app",
+    var agentName: String = "",
+    var sendingEmail: String = "",
+    var sendingDomain: String = "",
+    var emailVerified: Boolean = false,
     var companies: List<Company> = emptyList()
 ) {
     val defaultCompany: Company?
