@@ -154,7 +154,7 @@ class TeamManager private constructor() {
         saveMembers()
     }
 
-    fun setTeamOwner(isOwner: Boolean) {
+    fun updateTeamOwner(isOwner: Boolean) {
         isTeamOwner = isOwner
         prefs.edit().putBoolean(KEY_OWNER, isOwner).apply()
     }
