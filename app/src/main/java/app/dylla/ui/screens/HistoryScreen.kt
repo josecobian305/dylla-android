@@ -131,7 +131,7 @@ private fun CallHistoryRow(contact: Contact) {
                 )
                 contact.callTime?.let {
                     Text(
-                        it.format(formatter),
+                        it,
                         fontSize = 12.sp,
                         color = DyllaOnSurfaceSecondary
                     )

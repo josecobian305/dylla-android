@@ -160,8 +160,8 @@ class VoiceDropManager {
         mediaPlayer = MediaPlayer().apply {
             setDataSource(file.absolutePath)
             setOnCompletionListener {
-                isPlaying = false
-                playingDropID = null
+                this@VoiceDropManager.isPlaying = false
+                this@VoiceDropManager.playingDropID = null
             }
             prepare()
             start()

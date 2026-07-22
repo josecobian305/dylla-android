@@ -19,7 +19,8 @@ data class RoleplayScenario(
     val painPoint: String,
     val difficulty: Difficulty,
     val objections: List<String>,
-    val personality: String
+    val personality: String,
+    val timeInBusiness: String = "3 years"
 )
 
 data class RoleplayMessage(
