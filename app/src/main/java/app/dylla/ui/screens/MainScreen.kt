@@ -43,6 +43,16 @@ fun MainScreen(
     var showCompanySwitcher by remember { mutableStateOf(false) }
     var showStageEditor by remember { mutableStateOf(false) }
     var showActiveCall by remember { mutableStateOf(false) }
+    var showHistory by remember { mutableStateOf(false) }
+    var showProfileEditor by remember { mutableStateOf(false) }
+    var showEmailSignature by remember { mutableStateOf(false) }
+    var showWorkflowMap by remember { mutableStateOf(false) }
+    var showGoogleSheets by remember { mutableStateOf(false) }
+    var showTeamDashboard by remember { mutableStateOf(false) }
+    var showHotshot by remember { mutableStateOf(false) }
+    var showVoiceDrop by remember { mutableStateOf(false) }
+    var showDialModePicker by remember { mutableStateOf(false) }
+    var showWebView by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("dylla_prefs", android.content.Context.MODE_PRIVATE) }
@@ -76,6 +86,59 @@ fun MainScreen(
             listName = vm.activeList?.name ?: "No List",
             stages = vm.stages,
             onEndSession = { showActiveCall = false }
+        )
+    } else if (showHistory) {
+        HistoryScreen(
+            lists = vm.lists,
+            onBack = { showHistory = false }
+        )
+    } else if (showProfileEditor) {
+        ProfileEditorScreen(
+            activeCompanyName = vm.activeCompany?.name,
+            onSave = { showProfileEditor = false },
+            onDismiss = { showProfileEditor = false }
+        )
+    } else if (showEmailSignature) {
+        EmailSignatureScreen(
+            onDismiss = { showEmailSignature = false }
+        )
+    } else if (showWorkflowMap) {
+        WorkflowMapScreen(
+            stages = vm.stages,
+            onBack = { showWorkflowMap = false }
+        )
+    } else if (showGoogleSheets) {
+        GoogleSheetsSetupScreen(
+            activeList = vm.activeList,
+            stages = vm.stages,
+            onDismiss = { showGoogleSheets = false }
+        )
+    } else if (showTeamDashboard) {
+        TeamDashboardScreen(
+            onDismiss = { showTeamDashboard = false }
+        )
+    } else if (showHotshot) {
+        HotshotScreen(
+            onDismiss = { showHotshot = false }
+        )
+    } else if (showVoiceDrop) {
+        VoiceDropScreen(
+            stages = vm.stages,
+            onDismiss = { showVoiceDrop = false }
+        )
+    } else if (showDialModePicker) {
+        DialModePickerScreen(
+            pendingCount = vm.activeList?.contacts?.size ?: 0,
+            stages = vm.stages,
+            onStart = { isPowerDialer ->
+                showDialModePicker = false
+                showActiveCall = true
+            },
+            onDismiss = { showDialModePicker = false }
+        )
+    } else if (showWebView) {
+        DyllaWebViewScreen(
+            url = "https://dylla.app/app/"
         )
     } else {
         Scaffold(
@@ -116,7 +179,12 @@ fun MainScreen(
                         onImport = { showImport = true },
                         onListPicker = { showListPicker = true },
                         onCompanySwitcher = { showCompanySwitcher = true },
-                        onStartCalling = { showActiveCall = true }
+                        onStartCalling = { showActiveCall = true },
+                        onHistory = { showHistory = true },
+                        onHotshot = { showHotshot = true },
+                        onTeamDashboard = { showTeamDashboard = true },
+                        onDialModePicker = { showDialModePicker = true },
+                        onProfileEditor = { showProfileEditor = true }
                     )
                     BottomTab.CONTACTS -> ContactsScreen(
                         activeList = vm.activeList,
@@ -131,6 +199,10 @@ fun MainScreen(
                         onLogout = onLogout,
                         onEditStages = { showStageEditor = true },
                         onManageCompanies = { showCompanySwitcher = true },
+                        onEditSignature = { showEmailSignature = true },
+                        onWorkflowMap = { showWorkflowMap = true },
+                        onVoiceDrops = { showVoiceDrop = true },
+                        onGoogleSheets = { showGoogleSheets = true },
                         userEmail = userEmail
                     )
                 }

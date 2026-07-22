@@ -11,8 +11,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,7 +39,12 @@ fun DashboardScreen(
     onImport: () -> Unit = {},
     onListPicker: () -> Unit = {},
     onCompanySwitcher: () -> Unit = {},
-    onStartCalling: () -> Unit = {}
+    onStartCalling: () -> Unit = {},
+    onHistory: () -> Unit = {},
+    onHotshot: () -> Unit = {},
+    onTeamDashboard: () -> Unit = {},
+    onDialModePicker: () -> Unit = {},
+    onProfileEditor: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -297,7 +306,61 @@ fun DashboardScreen(
                 )
             }
 
+            // Quick actions
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                QuickActionButton(
+                    label = "History",
+                    icon = Icons.Filled.History,
+                    color = DyllaPurple,
+                    modifier = Modifier.weight(1f),
+                    onClick = onHistory
+                )
+                QuickActionButton(
+                    label = "Hotshot",
+                    icon = Icons.Filled.FlashOn,
+                    color = DyllaOrange,
+                    modifier = Modifier.weight(1f),
+                    onClick = onHotshot
+                )
+                QuickActionButton(
+                    label = "Team",
+                    icon = Icons.Filled.Groups,
+                    color = DyllaGreen,
+                    modifier = Modifier.weight(1f),
+                    onClick = onTeamDashboard
+                )
+            }
+
             Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+private fun QuickActionButton(
+    label: String,
+    icon: ImageVector,
+    color: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(14.dp),
+        color = color.copy(alpha = 0.1f)
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(icon, contentDescription = label, tint = color, modifier = Modifier.size(22.dp))
+            Text(label, color = color, fontSize = 12.sp, fontWeight = FontWeight.Medium)
         }
     }
 }

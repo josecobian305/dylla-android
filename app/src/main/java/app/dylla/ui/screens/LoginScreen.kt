@@ -27,8 +27,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.dylla.ui.theme.*
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.UserProfileChangeRequest
+
+private const val WEB_CLIENT_ID = "86169052590-s7b4iv3jpdb4ng8v9ubpjibakupr0uo7.apps.googleusercontent.com"
 
 private enum class AuthMode { LOGIN, REGISTER }
 
@@ -36,6 +45,31 @@ private enum class AuthMode { LOGIN, REGISTER }
 fun LoginScreen(
     onLoginSuccess: (uid: String, email: String, name: String) -> Unit
 ) {
+    val context = LocalContext.current
+    val auth = remember { FirebaseAuth.getInstance() }
+
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(com.google.android.gms.common.api.ApiException::class.java)
+                val credential = GoogleAuthProvider.getCredential(account.idToken, null)
+                auth.signInWithCredential(credential).addOnCompleteListener { authTask ->
+                    if (authTask.isSuccessful) {
+                        val user = auth.currentUser
+                        onLoginSuccess(
+                            user?.uid ?: "",
+                            user?.email ?: account.email ?: "",
+                            user?.displayName ?: account.displayName ?: ""
+                        )
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
     var mode by remember { mutableStateOf(AuthMode.LOGIN) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -114,7 +148,14 @@ fun LoginScreen(
 
             // Google sign-in button
             OutlinedButton(
-                onClick = { /* Google Sign-In handled externally */ },
+                onClick = {
+                    val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                        .requestIdToken(WEB_CLIENT_ID)
+                        .requestEmail()
+                        .build()
+                    val client = GoogleSignIn.getClient(context, gso)
+                    googleSignInLauncher.launch(client.signInIntent)
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
