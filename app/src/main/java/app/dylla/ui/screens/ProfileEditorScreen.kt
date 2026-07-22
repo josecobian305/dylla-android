@@ -11,6 +11,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.dylla.services.PersistenceManager
 import app.dylla.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -21,7 +22,7 @@ fun ProfileEditorScreen(
     onDismiss: () -> Unit
 ) {
     var serverBaseURL by remember {
-        mutableStateOf(PersistenceManager.getUserProfile()?.serverBaseURL ?: "")
+        mutableStateOf(PersistenceManager.loadUserProfile()?.serverBaseURL ?: "")
     }
 
     Scaffold(
@@ -68,9 +69,9 @@ fun ProfileEditorScreen(
                             fontWeight = FontWeight.SemiBold,
                             color = DyllaOnSurface
                         )
-                        if (company?.industry != null) {
+                        if (company != null) {
                             Text(
-                                company.industry,
+                                company.industry.label,
                                 fontSize = 14.sp,
                                 color = DyllaOnSurfaceSecondary
                             )

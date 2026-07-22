@@ -16,6 +16,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.dylla.models.Contact
+import app.dylla.models.FundingStage
 import app.dylla.ui.theme.*
 
 data class QualItem(val label: String, val key: String, val passed: Boolean? = null)

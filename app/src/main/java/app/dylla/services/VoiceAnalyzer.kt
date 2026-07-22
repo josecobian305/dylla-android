@@ -198,6 +198,14 @@ class VoiceAnalyzer {
         return sqrt(variance.toDouble()).toFloat()
     }
 
+    // Normalized values (0..1) for game visualization
+    val normalizedVolume: Float
+        get() = ((currentVolume + 60f) / 60f).coerceIn(0f, 1f)
+    val normalizedPitch: Float
+        get() = if (averagePitch > 0f) (averagePitch / 400f).coerceIn(0f, 1f) else 0f
+    val normalizedTone: Float
+        get() = (tonalityScore / 100f).coerceIn(0f, 1f)
+
     val summary: VoiceAnalysisSummary
         get() {
             val avgRT = if (reactionTimes.isNotEmpty()) reactionTimes.average() else 0.0

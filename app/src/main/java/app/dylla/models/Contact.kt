@@ -7,8 +7,13 @@ enum class CallOutcome(val label: String, val emoji: String, val color: String) 
     PENDING("Pending", "🔵", "blue"),
     ANSWERED("Answered", "✅", "green"),
     NO_ANSWER("No Answer", "📵", "orange"),
+    VOICEMAIL("Voicemail", "📬", "orange"),
+    BUSY("Busy", "🔴", "red"),
     CALLBACK("Callback", "📅", "purple"),
-    DNC("DNC", "🚫", "red"),
+    NOT_INTERESTED("Not Interested", "🚫", "red"),
+    WRONG_NUMBER("Wrong Number", "❌", "red"),
+    DISCONNECTED("Disconnected", "☎️", "gray"),
+    DNC("DNC", "🛑", "red"),
     SKIPPED("Skipped", "⏭", "gray");
 
     val isDone: Boolean get() = this != PENDING

@@ -22,7 +22,8 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.dylla.ui.theme.*
-import app.dylla.service.VoiceAnalyzer
+import app.dylla.services.EnergyLevel
+import app.dylla.services.VoiceAnalyzer
 import kotlinx.coroutines.delay
 import kotlin.math.max
 import kotlin.random.Random
@@ -118,10 +119,10 @@ fun VoiceGameScreen(
             delay(3000)
 
             val message = when {
-                analyzer.reactionTime > 3f -> "Respond faster!"
-                analyzer.reactionTime < 0.4f -> "Slow down a bit"
-                analyzer.energyLevel == VoiceAnalyzer.EnergyLevel.QUIET -> "Project your voice!"
-                analyzer.energyLevel == VoiceAnalyzer.EnergyLevel.LOUD -> "Ease up a bit"
+                analyzer.reactionTime > 3.0 -> "Respond faster!"
+                analyzer.reactionTime < 0.4 -> "Slow down a bit"
+                analyzer.energyLevel == EnergyLevel.QUIET -> "Project your voice!"
+                analyzer.energyLevel == EnergyLevel.LOUD -> "Ease up a bit"
                 analyzer.fillerCount > 3 -> "Drop the fillers!"
                 analyzer.uptalkCount > 1 -> "End with authority"
                 Random.nextFloat() < 0.3f -> {

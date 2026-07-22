@@ -3,7 +3,7 @@ package app.dylla.services
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import app.dylla.persistence.PersistenceManager
+// PersistenceManager is in the same package
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray

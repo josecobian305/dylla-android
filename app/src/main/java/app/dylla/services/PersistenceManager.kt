@@ -127,6 +127,29 @@ object PersistenceManager {
         }
     }
 
+    // ── Convenience Accessors ─────────────────────────────────────
+
+    fun getUserProfile(): UserProfile = loadUserProfile()
+
+    fun updateServerBaseURL(url: String) {
+        val profile = loadUserProfile().copy(serverBaseURL = url)
+        saveUserProfile(profile)
+    }
+
+    fun updateEmailSignatureHTML(html: String) {
+        val profile = loadUserProfile().copy(emailSignatureHTML = html)
+        saveUserProfile(profile)
+    }
+
+    fun updateEmailSignaturePlain(plain: String) {
+        val profile = loadUserProfile().copy(emailSignaturePlain = plain)
+        saveUserProfile(profile)
+    }
+
+    fun getCompany(name: String): Company? {
+        return loadCompanies().firstOrNull { it.name == name }
+    }
+
     // ── Active List ID ─────────────────────────────────────────────
 
     fun saveActiveListId(id: String?) {

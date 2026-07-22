@@ -6,9 +6,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import app.dylla.models.Contact
-import app.dylla.models.VoiceDrop
-import app.dylla.persistence.PersistenceManager
-import app.dylla.services.TwilioConfig
+// VoiceDrop, PersistenceManager, TwilioConfig are in the same package
 import kotlinx.coroutines.*
 import org.json.JSONObject
 import java.io.File
@@ -89,7 +87,7 @@ class TrainingDialerService {
         scope.launch {
             try {
                 val config = TwilioConfig.load()
-                val audioFile = File(drop.filePath)
+                val audioFile = dropManager.fileUrl(drop)
                 if (!audioFile.exists()) return@launch
 
                 val audioBytes = audioFile.readBytes()

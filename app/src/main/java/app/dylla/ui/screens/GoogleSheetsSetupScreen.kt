@@ -21,18 +21,14 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.dylla.models.CallList
+import app.dylla.models.FundingStage
 import app.dylla.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
-
-data class CallList(
-    val id: String,
-    val name: String,
-    val contactCount: Int
-)
 
 enum class ConnectionTestState {
     IDLE, TESTING, SUCCESS, FAILED
@@ -267,7 +263,7 @@ function doPost(e) {
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "${list.name} · ${list.contactCount} contacts",
+                            text = "${list.name} · ${list.totalCount} contacts",
                             fontSize = 13.sp,
                             color = DyllaOnSurfaceSecondary
                         )

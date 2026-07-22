@@ -12,7 +12,12 @@ data class FundingStage(
     var autoSMS: String = "",
     var autoEmail: String = "",
     var autoDelay: Int = 0,
-    var color: String = "#007AFF"
+    var color: String = "#007AFF",
+    var initialSMS: String = "",
+    var initialEmail: String = "",
+    var nudgeEmail: String = "",
+    var nudgeDelay: Int = 24,
+    var criteria: String = ""
 ) {
     companion object {
         val lead = FundingStage(
@@ -21,7 +26,8 @@ data class FundingStage(
             emoji = "📥",
             order = 0,
             shortLabel = "Lead",
-            color = "#007AFF"
+            color = "#007AFF",
+            criteria = "New inbound or imported contact"
         )
 
         val contacted = FundingStage(
@@ -30,7 +36,8 @@ data class FundingStage(
             emoji = "📞",
             order = 1,
             shortLabel = "Contacted",
-            color = "#5856D6"
+            color = "#5856D6",
+            criteria = "First call or message sent"
         )
 
         val qualified = FundingStage(
@@ -39,7 +46,8 @@ data class FundingStage(
             emoji = "✅",
             order = 2,
             shortLabel = "Qualified",
-            color = "#34C759"
+            color = "#34C759",
+            criteria = "Merchant interested and meets basic criteria"
         )
 
         val submitted = FundingStage(
@@ -48,7 +56,8 @@ data class FundingStage(
             emoji = "📤",
             order = 3,
             shortLabel = "Submitted",
-            color = "#FF9500"
+            color = "#FF9500",
+            criteria = "Application and bank statements received"
         )
 
         val approved = FundingStage(
@@ -57,7 +66,8 @@ data class FundingStage(
             emoji = "🎉",
             order = 4,
             shortLabel = "Approved",
-            color = "#30D158"
+            color = "#30D158",
+            criteria = "Offer issued by underwriting"
         )
 
         val funded = FundingStage(
@@ -66,7 +76,8 @@ data class FundingStage(
             emoji = "💰",
             order = 5,
             shortLabel = "Funded",
-            color = "#00C7BE"
+            color = "#00C7BE",
+            criteria = "Deal closed and funded"
         )
 
         val declined = FundingStage(
@@ -75,7 +86,8 @@ data class FundingStage(
             emoji = "❌",
             order = 6,
             shortLabel = "Declined",
-            color = "#FF3B30"
+            color = "#FF3B30",
+            criteria = "Application declined"
         )
 
         val dnc = FundingStage(
@@ -84,7 +96,8 @@ data class FundingStage(
             emoji = "🚫",
             order = 7,
             shortLabel = "DNC",
-            color = "#8E8E93"
+            color = "#8E8E93",
+            criteria = "Do not contact"
         )
 
         val defaults: List<FundingStage> = listOf(

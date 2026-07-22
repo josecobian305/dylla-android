@@ -14,6 +14,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.dylla.models.CallList
+import app.dylla.models.Contact
 import app.dylla.ui.theme.*
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter

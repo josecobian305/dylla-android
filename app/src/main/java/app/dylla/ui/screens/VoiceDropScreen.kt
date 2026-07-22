@@ -29,9 +29,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.dylla.models.FundingStage
+import app.dylla.services.VoiceDropManager
 import app.dylla.ui.theme.*
-import app.dylla.model.FundingStage
-import app.dylla.service.VoiceDropManager
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -161,19 +161,19 @@ fun VoiceDropScreen(
                 ) {
                     FloatingActionButton(
                         onClick = {
-                            if (dropManager.recording) {
+                            if (dropManager.isRecording) {
                                 dropManager.stopRecording()
                             } else {
                                 permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                             }
                         },
                         shape = CircleShape,
-                        containerColor = if (dropManager.recording) DyllaRed else DyllaBlue,
-                        modifier = if (dropManager.recording) Modifier.scale(pulseScale) else Modifier
+                        containerColor = if (dropManager.isRecording) DyllaRed else DyllaBlue,
+                        modifier = if (dropManager.isRecording) Modifier.scale(pulseScale) else Modifier
                     ) {
                         Icon(
-                            imageVector = if (dropManager.recording) Icons.Filled.Stop else Icons.Filled.Mic,
-                            contentDescription = if (dropManager.recording) "Stop" else "Record",
+                            imageVector = if (dropManager.isRecording) Icons.Filled.Stop else Icons.Filled.Mic,
+                            contentDescription = if (dropManager.isRecording) "Stop" else "Record",
                             tint = DyllaOnSurface
                         )
                     }
@@ -212,18 +212,18 @@ fun VoiceDropScreen(
                         ) {
                             IconButton(
                                 onClick = {
-                                    if (dropManager.playingId == recording.id) {
-                                        dropManager.stopPlaying()
+                                    if (dropManager.playingDropID == recording.id) {
+                                        dropManager.stopPlayback()
                                     } else {
-                                        dropManager.play(recording.id)
+                                        dropManager.play(recording)
                                     }
                                 }
                             ) {
                                 Icon(
-                                    imageVector = if (dropManager.playingId == recording.id) Icons.Filled.Stop
+                                    imageVector = if (dropManager.playingDropID == recording.id) Icons.Filled.Stop
                                     else Icons.Filled.PlayArrow,
-                                    contentDescription = if (dropManager.playingId == recording.id) "Stop" else "Play",
-                                    tint = if (dropManager.playingId == recording.id) DyllaRed else DyllaGreen
+                                    contentDescription = if (dropManager.playingDropID == recording.id) "Stop" else "Play",
+                                    tint = if (dropManager.playingDropID == recording.id) DyllaRed else DyllaGreen
                                 )
                             }
 
@@ -253,8 +253,8 @@ fun VoiceDropScreen(
                                         }
                                     }
                                 }
-                                if (recording.stageId != null) {
-                                    val stageName = stages.find { it.id == recording.stageId }
+                                if (recording.stageID != null) {
+                                    val stageName = stages.find { it.id == recording.stageID }
                                         ?.let { "${it.emoji} ${it.name}" } ?: "Unknown Stage"
                                     Text(
                                         text = stageName,
@@ -266,7 +266,7 @@ fun VoiceDropScreen(
 
                             if (!recording.isDefault) {
                                 TextButton(
-                                    onClick = { dropManager.setDefault(recording.id) }
+                                    onClick = { dropManager.setDefault(recording) }
                                 ) {
                                     Text("Set Default", fontSize = 12.sp, color = DyllaBlue)
                                 }
@@ -287,7 +287,7 @@ fun VoiceDropScreen(
                             }
 
                             IconButton(
-                                onClick = { dropManager.delete(recording.id) }
+                                onClick = { dropManager.delete(recording) }
                             ) {
                                 Icon(
                                     Icons.Filled.Delete,
@@ -316,7 +316,7 @@ fun VoiceDropScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Voice drops are sent as MMS voicemails directly to the prospect’s phone. " +
+                            text = "Voice drops are sent as MMS voicemails directly to the prospect's phone. " +
                                     "Record a personalized message and assign it to a funding stage. " +
                                     "When a prospect reaches that stage, the voice drop is delivered automatically.",
                             fontSize = 13.sp,
@@ -376,7 +376,10 @@ fun VoiceDropScreen(
                     onClick = {
                         val id = renamingDrop!!
                         if (renameText.isNotBlank()) {
-                            dropManager.rename(id, renameText.trim())
+                            val drop = dropManager.recordings.find { it.id == id }
+                            if (drop != null) {
+                                dropManager.rename(drop, renameText.trim())
+                            }
                         }
                         renamingDrop = null
                     }

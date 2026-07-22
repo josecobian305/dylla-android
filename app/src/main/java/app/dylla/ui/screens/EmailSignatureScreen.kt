@@ -12,13 +12,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.dylla.services.PersistenceManager
 import app.dylla.ui.theme.*
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EmailSignatureScreen(onDismiss: () -> Unit) {
-    val profile = PersistenceManager.getUserProfile()
+    val profile = PersistenceManager.loadUserProfile()
     var useHtml by remember { mutableStateOf(false) }
     var signatureText by remember {
         mutableStateOf(
@@ -29,7 +30,7 @@ fun EmailSignatureScreen(onDismiss: () -> Unit) {
     var showSaved by remember { mutableStateOf(false) }
 
     LaunchedEffect(useHtml) {
-        val current = PersistenceManager.getUserProfile()
+        val current = PersistenceManager.loadUserProfile()
         signatureText = if (useHtml) current?.emailSignatureHTML ?: ""
         else current?.emailSignaturePlain ?: ""
     }

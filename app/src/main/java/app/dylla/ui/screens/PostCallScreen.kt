@@ -24,6 +24,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.dylla.models.CallOutcome
+import app.dylla.models.Contact
+import app.dylla.models.FundingStage
 import app.dylla.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -36,35 +39,6 @@ enum class CallbackPreset(val label: String, val timeIntervalMillis: Long) {
     ONE_WEEK("1 Week", 604_800_000L),
     CUSTOM("Custom", 0L)
 }
-
-enum class CallOutcome(val emoji: String, val label: String) {
-    ANSWERED("✅", "Answered"),
-    NO_ANSWER("📵", "No Answer"),
-    VOICEMAIL("📬", "Voicemail"),
-    BUSY("🔴", "Busy"),
-    CALLBACK("📅", "Callback"),
-    NOT_INTERESTED("🚫", "Not Interested"),
-    WRONG_NUMBER("❌", "Wrong Number"),
-    DISCONNECTED("☎️", "Disconnected"),
-    DNC("🛑", "DNC"),
-    PENDING("⏳", "Pending")
-}
-
-data class Contact(
-    val id: String,
-    val name: String,
-    val business: String?,
-    val phoneNumbers: List<String>,
-    val activePhoneIndex: Int = 0,
-    val existingNotes: String? = null
-)
-
-data class FundingStage(
-    val id: String,
-    val emoji: String,
-    val shortLabel: String,
-    val name: String
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -128,15 +102,15 @@ fun PostCallScreen(
                         fontWeight = FontWeight.Bold,
                         color = DyllaOnSurface
                     )
-                    contact.business?.let {
+                    if (contact.businessName.isNotBlank()) {
                         Text(
-                            text = it,
+                            text = contact.businessName,
                             fontSize = 14.sp,
                             color = DyllaOnSurfaceSecondary
                         )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    contact.phoneNumbers.forEachIndexed { index, phone ->
+                    if (contact.phone.isNotBlank()) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(vertical = 2.dp)
@@ -145,23 +119,21 @@ fun PostCallScreen(
                                 imageVector = Icons.Default.Phone,
                                 contentDescription = null,
                                 modifier = Modifier.size(14.dp),
-                                tint = if (index == contact.activePhoneIndex) DyllaGreen else DyllaOnSurfaceSecondary
+                                tint = DyllaGreen
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = phone,
+                                text = contact.phone,
                                 fontSize = 14.sp,
-                                color = if (index == contact.activePhoneIndex) DyllaOnSurface else DyllaOnSurfaceSecondary
+                                color = DyllaOnSurface
                             )
-                            if (index == contact.activePhoneIndex) {
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = "Active",
-                                    modifier = Modifier.size(14.dp),
-                                    tint = DyllaGreen
-                                )
-                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = "Active",
+                                modifier = Modifier.size(14.dp),
+                                tint = DyllaGreen
+                            )
                         }
                     }
                 }
@@ -185,21 +157,19 @@ fun PostCallScreen(
                     shape = RoundedCornerShape(8.dp),
                     maxLines = 6
                 )
-                contact.existingNotes?.let { notes ->
-                    if (notes.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Previous Notes",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = DyllaOnSurfaceSecondary
-                        )
-                        Text(
-                            text = notes,
-                            fontSize = 12.sp,
-                            color = DyllaOnSurfaceSecondary
-                        )
-                    }
+                if (contact.notes.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Previous Notes",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = DyllaOnSurfaceSecondary
+                    )
+                    Text(
+                        text = contact.notes,
+                        fontSize = 12.sp,
+                        color = DyllaOnSurfaceSecondary
+                    )
                 }
             }
 
@@ -314,7 +284,7 @@ fun PostCallScreen(
                     color = DyllaOnSurface
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                val outcomes = CallOutcome.entries.filter { it != CallOutcome.PENDING }
+                val outcomes = CallOutcome.entries.filter { it != CallOutcome.PENDING && it != CallOutcome.SKIPPED }
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(3),
                     modifier = Modifier.heightIn(max = 300.dp),
@@ -457,23 +427,6 @@ fun PostCallScreen(
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold
                     )
-                }
-
-                if (contact.phoneNumbers.size > 1 && onTryAnotherNumber != null) {
-                    OutlinedButton(
-                        onClick = onTryAnotherNumber,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = DyllaBlue)
-                    ) {
-                        Text(
-                            text = "Try Ph ${contact.activePhoneIndex + 2}",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
                 }
             }
 

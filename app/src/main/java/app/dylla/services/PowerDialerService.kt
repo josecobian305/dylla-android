@@ -7,7 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import app.dylla.DyllaApp
 import app.dylla.models.Contact
-import app.dylla.persistence.PersistenceManager
+// PersistenceManager is in the same package
 import kotlinx.coroutines.*
 import org.json.JSONArray
 import org.json.JSONObject

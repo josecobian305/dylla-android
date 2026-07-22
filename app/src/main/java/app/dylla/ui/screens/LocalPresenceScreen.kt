@@ -14,9 +14,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.dylla.models.Contact
+import app.dylla.services.LocalPresenceService
 import app.dylla.ui.theme.*
-import app.dylla.model.Contact
-import app.dylla.service.LocalPresenceService
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,16 +29,17 @@ fun LocalPresenceScreen(
 ) {
     var calling by remember { mutableStateOf(false) }
     val presence = remember { LocalPresenceService() }
+    val scope = rememberCoroutineScope()
 
     val contactDigits = remember(contact.phone) {
         val stripped = contact.phone.filter { it.isDigit() }
         if (stripped.length == 10) "1$stripped" else stripped
     }
     val areaCode = if (contactDigits.length >= 4) contactDigits.substring(1, 4) else ""
-    val matched = presence.matchedNumber(areaCode)
+    val matched = presence.matchedNumber("+$contactDigits")
 
     LaunchedEffect(Unit) {
-        presence.loadNumbers()
+        presence.loadNumbers(uid)
     }
 
     Scaffold(
@@ -99,7 +101,7 @@ fun LocalPresenceScreen(
                 }
             }
 
-            if (presence.loading) {
+            if (presence.isLoading) {
                 Box(
                     modifier = Modifier.fillMaxWidth().padding(24.dp),
                     contentAlignment = Alignment.Center
@@ -124,7 +126,7 @@ fun LocalPresenceScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = formatPresencePhone(matched),
+                            text = matched.formatted,
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Bold,
                             color = DyllaBlue
@@ -132,17 +134,19 @@ fun LocalPresenceScreen(
                         Button(
                             onClick = {
                                 calling = true
-                                presence.bridgeCall(
-                                    from = matched,
-                                    to = "+$contactDigits",
-                                    prospectName = contact.name,
-                                    onSuccess = { sid ->
-                                        calling = false
+                                scope.launch {
+                                    val sid = presence.bridgeCall(
+                                        uid = uid,
+                                        spoofNumber = matched.number,
+                                        prospectPhone = "+$contactDigits",
+                                        prospectName = contact.name
+                                    )
+                                    calling = false
+                                    if (sid != null) {
                                         onCallStarted(sid)
                                         onDismiss()
-                                    },
-                                    onError = { calling = false }
-                                )
+                                    }
+                                }
                             },
                             enabled = !calling,
                             colors = ButtonDefaults.buttonColors(containerColor = DyllaGreen),
@@ -167,23 +171,24 @@ fun LocalPresenceScreen(
                 Button(
                     onClick = {
                         calling = true
-                        presence.getOrBuyNumber(
-                            areaCode = areaCode,
-                            onSuccess = { number ->
-                                presence.bridgeCall(
-                                    from = number,
-                                    to = "+$contactDigits",
-                                    prospectName = contact.name,
-                                    onSuccess = { sid ->
-                                        calling = false
-                                        onCallStarted(sid)
-                                        onDismiss()
-                                    },
-                                    onError = { calling = false }
+                        scope.launch {
+                            val number = presence.getOrBuyNumber(uid, "+$contactDigits")
+                            if (number != null) {
+                                val sid = presence.bridgeCall(
+                                    uid = uid,
+                                    spoofNumber = number.number,
+                                    prospectPhone = "+$contactDigits",
+                                    prospectName = contact.name
                                 )
-                            },
-                            onError = { calling = false }
-                        )
+                                calling = false
+                                if (sid != null) {
+                                    onCallStarted(sid)
+                                    onDismiss()
+                                }
+                            } else {
+                                calling = false
+                            }
+                        }
                     },
                     enabled = !calling,
                     colors = ButtonDefaults.buttonColors(containerColor = DyllaOrange),
@@ -231,7 +236,7 @@ fun LocalPresenceScreen(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = formatPresencePhone(number.phoneNumber),
+                                        text = number.formatted,
                                         fontWeight = FontWeight.Medium,
                                         fontSize = 14.sp,
                                         color = DyllaOnSurface
@@ -253,17 +258,19 @@ fun LocalPresenceScreen(
                                     IconButton(
                                         onClick = {
                                             calling = true
-                                            presence.bridgeCall(
-                                                from = number.phoneNumber,
-                                                to = "+$contactDigits",
-                                                prospectName = contact.name,
-                                                onSuccess = { sid ->
-                                                    calling = false
+                                            scope.launch {
+                                                val sid = presence.bridgeCall(
+                                                    uid = uid,
+                                                    spoofNumber = number.number,
+                                                    prospectPhone = "+$contactDigits",
+                                                    prospectName = contact.name
+                                                )
+                                                calling = false
+                                                if (sid != null) {
                                                     onCallStarted(sid)
                                                     onDismiss()
-                                                },
-                                                onError = { calling = false }
-                                            )
+                                                }
+                                            }
                                         },
                                         enabled = !calling
                                     ) {
@@ -274,7 +281,11 @@ fun LocalPresenceScreen(
                                         )
                                     }
                                     IconButton(
-                                        onClick = { presence.releaseNumber(number.phoneNumber) }
+                                        onClick = {
+                                            scope.launch {
+                                                presence.releaseNumber(uid, number.id)
+                                            }
+                                        }
                                     ) {
                                         Icon(
                                             Icons.Filled.Delete,

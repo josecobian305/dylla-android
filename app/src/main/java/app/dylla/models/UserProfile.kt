@@ -48,6 +48,8 @@ data class UserProfile(
     var linesPerBatch: Int = 10,
     var googleSheetsWebhookURL: String = "",
     var emailSignature: String = "",
+    var emailSignatureHTML: String = "",
+    var emailSignaturePlain: String = "",
     var apiKey: String = "",
     var serverBaseURL: String = "https://dylla.app",
     var agentName: String = "",

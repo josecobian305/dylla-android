@@ -77,8 +77,6 @@ fun LoginScreen(
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
 
-    val auth = remember { FirebaseAuth.getInstance() }
-
     val gradientBrush = Brush.verticalGradient(
         colors = listOf(
             Color(0xFFFAFAF9),

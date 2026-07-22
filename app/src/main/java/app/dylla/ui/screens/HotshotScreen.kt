@@ -14,12 +14,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.dylla.services.LocalPresenceService
 import app.dylla.ui.theme.*
-import app.dylla.service.LocalPresenceService
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,6 +33,11 @@ fun HotshotScreen(onDismiss: () -> Unit) {
     var callCompleted by remember { mutableStateOf(false) }
     val presence = remember { LocalPresenceService() }
     var showDeleteConfirm by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("dylla_prefs", android.content.Context.MODE_PRIVATE) }
+    val uid = remember { prefs.getString("dylla_user_uid", "") ?: "" }
 
     val cleanDigits = remember(phoneInput) {
         val stripped = phoneInput.filter { it.isDigit() }
@@ -38,10 +45,10 @@ fun HotshotScreen(onDismiss: () -> Unit) {
     }
     val isValidPhone = cleanDigits.length == 11 && cleanDigits.startsWith("1")
     val areaCode = if (cleanDigits.length >= 4) cleanDigits.substring(1, 4) else ""
-    val matched = presence.matchedNumber(areaCode)
+    val matched = presence.matchedNumber("+$cleanDigits")
 
     LaunchedEffect(Unit) {
-        presence.loadNumbers()
+        presence.loadNumbers(uid)
     }
 
     Scaffold(
@@ -146,7 +153,7 @@ fun HotshotScreen(onDismiss: () -> Unit) {
                     }
                 }
             } else if (isValidPhone) {
-                if (presence.loading) {
+                if (presence.isLoading) {
                     Box(
                         modifier = Modifier.fillMaxWidth().padding(24.dp),
                         contentAlignment = Alignment.Center
@@ -172,7 +179,7 @@ fun HotshotScreen(onDismiss: () -> Unit) {
                         ) {
                             Text("Match Found", fontWeight = FontWeight.Bold, color = DyllaGreen)
                             Text(
-                                text = formatPhone(matched),
+                                text = matched.formatted,
                                 fontSize = 28.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = DyllaOnSurface
@@ -180,17 +187,19 @@ fun HotshotScreen(onDismiss: () -> Unit) {
                             Button(
                                 onClick = {
                                     calling = true
-                                    presence.bridgeCall(
-                                        from = matched,
-                                        to = "+$cleanDigits",
-                                        prospectName = prospectName.ifBlank { null },
-                                        onSuccess = { sid ->
+                                    scope.launch {
+                                        val sid = presence.bridgeCall(
+                                            uid = uid,
+                                            spoofNumber = matched.number,
+                                            prospectPhone = "+$cleanDigits",
+                                            prospectName = prospectName.ifBlank { "Unknown" }
+                                        )
+                                        if (sid != null) {
                                             callSid = sid
                                             callCompleted = true
-                                            calling = false
-                                        },
-                                        onError = { calling = false }
-                                    )
+                                        }
+                                        calling = false
+                                    }
                                 },
                                 enabled = !calling,
                                 colors = ButtonDefaults.buttonColors(containerColor = DyllaGreen),
@@ -229,23 +238,22 @@ fun HotshotScreen(onDismiss: () -> Unit) {
                             Button(
                                 onClick = {
                                     calling = true
-                                    presence.getOrBuyNumber(
-                                        areaCode = areaCode,
-                                        onSuccess = { number ->
-                                            presence.bridgeCall(
-                                                from = number,
-                                                to = "+$cleanDigits",
-                                                prospectName = prospectName.ifBlank { null },
-                                                onSuccess = { sid ->
-                                                    callSid = sid
-                                                    callCompleted = true
-                                                    calling = false
-                                                },
-                                                onError = { calling = false }
+                                    scope.launch {
+                                        val number = presence.getOrBuyNumber(uid, "+$cleanDigits")
+                                        if (number != null) {
+                                            val sid = presence.bridgeCall(
+                                                uid = uid,
+                                                spoofNumber = number.number,
+                                                prospectPhone = "+$cleanDigits",
+                                                prospectName = prospectName.ifBlank { "Unknown" }
                                             )
-                                        },
-                                        onError = { calling = false }
-                                    )
+                                            if (sid != null) {
+                                                callSid = sid
+                                                callCompleted = true
+                                            }
+                                        }
+                                        calling = false
+                                    }
                                 },
                                 enabled = !calling,
                                 colors = ButtonDefaults.buttonColors(containerColor = DyllaOrange),
@@ -289,7 +297,7 @@ fun HotshotScreen(onDismiss: () -> Unit) {
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = formatPhone(number.phoneNumber),
+                                    text = number.formatted,
                                     fontWeight = FontWeight.Medium,
                                     fontSize = 15.sp,
                                     color = DyllaOnSurface
@@ -322,17 +330,19 @@ fun HotshotScreen(onDismiss: () -> Unit) {
                                     onClick = {
                                         if (isValidPhone) {
                                             calling = true
-                                            presence.bridgeCall(
-                                                from = number.phoneNumber,
-                                                to = "+$cleanDigits",
-                                                prospectName = prospectName.ifBlank { null },
-                                                onSuccess = { sid ->
+                                            scope.launch {
+                                                val sid = presence.bridgeCall(
+                                                    uid = uid,
+                                                    spoofNumber = number.number,
+                                                    prospectPhone = "+$cleanDigits",
+                                                    prospectName = prospectName.ifBlank { "Unknown" }
+                                                )
+                                                if (sid != null) {
                                                     callSid = sid
                                                     callCompleted = true
-                                                    calling = false
-                                                },
-                                                onError = { calling = false }
-                                            )
+                                                }
+                                                calling = false
+                                            }
                                         }
                                     },
                                     enabled = isValidPhone && !calling
@@ -344,7 +354,7 @@ fun HotshotScreen(onDismiss: () -> Unit) {
                                     )
                                 }
                                 IconButton(
-                                    onClick = { showDeleteConfirm = number.phoneNumber }
+                                    onClick = { showDeleteConfirm = number.id }
                                 ) {
                                     Icon(
                                         Icons.Filled.Delete,
@@ -363,16 +373,19 @@ fun HotshotScreen(onDismiss: () -> Unit) {
     }
 
     if (showDeleteConfirm != null) {
+        val numberToDelete = presence.numbers.find { it.id == showDeleteConfirm }
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = null },
             title = { Text("Release Number") },
-            text = { Text("Release ${formatPhone(showDeleteConfirm!!)}? This cannot be undone.") },
+            text = { Text("Release ${numberToDelete?.formatted ?: showDeleteConfirm}? This cannot be undone.") },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        val num = showDeleteConfirm!!
+                        val numberId = showDeleteConfirm!!
                         showDeleteConfirm = null
-                        presence.releaseNumber(num)
+                        scope.launch {
+                            presence.releaseNumber(uid, numberId)
+                        }
                     }
                 ) {
                     Text("Release", color = DyllaRed)
@@ -384,15 +397,5 @@ fun HotshotScreen(onDismiss: () -> Unit) {
                 }
             }
         )
-    }
-}
-
-private fun formatPhone(number: String): String {
-    val digits = number.filter { it.isDigit() }
-    val national = if (digits.startsWith("1") && digits.length == 11) digits.substring(1) else digits
-    return if (national.length == 10) {
-        "(${national.substring(0, 3)}) ${national.substring(3, 6)}-${national.substring(6)}"
-    } else {
-        number
     }
 }
