@@ -156,6 +156,22 @@ class DialerViewModel : ViewModel() {
         return newList
     }
 
+    fun importContacts(listName: String, contacts: List<Contact>): CallList? {
+        if (contacts.isEmpty()) return null
+
+        val newList = CallList(
+            id = UUID.randomUUID().toString(),
+            name = listName.ifBlank { "Imported List" },
+            contacts = contacts.toMutableList()
+        )
+
+        lists = lists + newList
+        activeList = newList
+        currentIndex = null
+        persist()
+        return newList
+    }
+
     fun selectList(list: CallList) {
         activeList = list
         currentIndex = null

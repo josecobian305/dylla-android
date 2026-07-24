@@ -61,7 +61,7 @@ fun MainScreen(
     if (showImport) {
         ImportScreen(
             onImport = { listName, contacts ->
-                vm.importCSV("", listName)
+                vm.importContacts(listName, contacts)
                 showImport = false
             },
             onDone = { showImport = false }

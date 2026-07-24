@@ -1,5 +1,7 @@
 package app.dylla.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,6 +27,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -108,6 +111,7 @@ fun ActiveCallScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     var stageDropdownExpanded by remember { mutableStateOf(false) }
 
+    val context = LocalContext.current
     val currentContact = contacts.getOrNull(currentIndex)
     val isLastContact = currentIndex >= contacts.size - 1
     val progress = if (contacts.isNotEmpty()) (currentIndex + 1).toFloat() / contacts.size else 0f
@@ -119,6 +123,14 @@ fun ActiveCallScreen(
         callNotes = ""
         selectedStageId = null
         callbackDate = null
+    }
+
+    fun dialPhone(phone: String) {
+        val digits = phone.filter { it.isDigit() || it == '+' }
+        if (digits.isNotEmpty()) {
+            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$digits"))
+            context.startActivity(intent)
+        }
     }
 
     fun advanceToNext() {
@@ -263,8 +275,10 @@ fun ActiveCallScreen(
                             contact = currentContact,
                             stages = stages,
                             onCall = {
+                                dialPhone(currentContact.phone)
                                 phase = Phase.PostCall
                             },
+                            onDialPhone = { dialPhone(currentContact.phone) },
                             onSkip = {
                                 currentContact.outcome = CallOutcome.SKIPPED
                                 if (isLastContact) {
@@ -309,6 +323,7 @@ private fun PreCallContent(
     contact: Contact,
     stages: List<FundingStage>,
     onCall: () -> Unit,
+    onDialPhone: () -> Unit,
     onSkip: () -> Unit,
     onCallback: () -> Unit
 ) {
@@ -355,7 +370,7 @@ private fun PreCallContent(
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Medium,
                 color = DyllaBlue,
-                modifier = Modifier.clickable { /* Tap to dial */ }
+                modifier = Modifier.clickable { onDialPhone() }
             )
 
             // Stage badge
