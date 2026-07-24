@@ -1,8 +1,11 @@
 package app.dylla.ui.screens
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
-import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,7 +22,6 @@ import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,17 +35,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import app.dylla.models.*
-import app.dylla.services.PersistenceManager
-import app.dylla.services.TwilioConfig
 import app.dylla.ui.theme.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import java.io.OutputStreamWriter
-import java.net.HttpURLConnection
-import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -123,11 +117,9 @@ fun ActiveCallScreen(
     var stageDropdownExpanded by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
     val currentContact = contacts.getOrNull(currentIndex)
     val isLastContact = currentIndex >= contacts.size - 1
     val progress = if (contacts.isNotEmpty()) (currentIndex + 1).toFloat() / contacts.size else 0f
-    var isPlacingCall by remember { mutableStateOf(false) }
 
     val dateFormatter = remember { SimpleDateFormat("MMM dd, yyyy", Locale.US) }
 
@@ -138,62 +130,33 @@ fun ActiveCallScreen(
         callbackDate = null
     }
 
-    fun bridgeCall(contact: Contact) {
-        val profile = PersistenceManager.loadUserProfile()
-        val config = TwilioConfig.load()
-        if (!config.isConfigured || profile?.userPhone.isNullOrBlank()) {
-            Toast.makeText(context, "Twilio not configured — set up in Settings", Toast.LENGTH_SHORT).show()
-            return
-        }
+    fun placeNativeCall(phone: String) {
+        val digits = phone.filter { it.isDigit() || it == '+' }
+        if (digits.isEmpty()) return
+        val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:$digits"))
+        context.startActivity(intent)
+        phase = Phase.PostCall
+    }
 
-        isPlacingCall = true
-        coroutineScope.launch {
-            try {
-                val body = JSONObject().apply {
-                    put("twilioSid", config.twilioSid)
-                    put("twilioToken", config.twilioToken)
-                    put("twilioNumber", config.twilioNumber)
-                    put("userPhone", config.userPhone.ifBlank { profile!!.userPhone })
-                    put("prospectPhone", contact.phone)
-                    put("prospectName", contact.name)
-                }
-                val serverBase = profile!!.serverBaseURL.ifBlank { "https://dylla.app" }
-
-                withContext(Dispatchers.IO) {
-                    val url = URL("$serverBase/api/bridge-call")
-                    val conn = url.openConnection() as HttpURLConnection
-                    conn.requestMethod = "POST"
-                    conn.setRequestProperty("Content-Type", "application/json")
-                    conn.doOutput = true
-                    conn.connectTimeout = 10000
-                    conn.readTimeout = 10000
-                    OutputStreamWriter(conn.outputStream).use { it.write(body.toString()) }
-                    val code = conn.responseCode
-                    val stream = if (code in 200..299) conn.inputStream else conn.errorStream
-                    val response = stream?.bufferedReader()?.readText()
-                    conn.disconnect()
-                    if (code !in 200..299) {
-                        val errMsg = response?.let { JSONObject(it).optString("error") } ?: "Call failed"
-                        throw Exception(errMsg)
-                    }
-                }
-
-                isPlacingCall = false
-                phase = Phase.PostCall
-            } catch (e: Exception) {
-                isPlacingCall = false
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Call failed: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-            }
+    var pendingCallPhone by remember { mutableStateOf<String?>(null) }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted && pendingCallPhone != null) {
+            placeNativeCall(pendingCallPhone!!)
+            pendingCallPhone = null
         }
     }
 
-    fun dialPhone(phone: String) {
-        val digits = phone.filter { it.isDigit() || it == '+' }
-        if (digits.isNotEmpty()) {
-            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$digits"))
-            context.startActivity(intent)
+    fun callContact(phone: String) {
+        val hasPermission = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.CALL_PHONE
+        ) == PackageManager.PERMISSION_GRANTED
+        if (hasPermission) {
+            placeNativeCall(phone)
+        } else {
+            pendingCallPhone = phone
+            permissionLauncher.launch(Manifest.permission.CALL_PHONE)
         }
     }
 
@@ -338,11 +301,10 @@ fun ActiveCallScreen(
                         is Phase.PreCall -> PreCallContent(
                             contact = currentContact,
                             stages = stages,
-                            isPlacingCall = isPlacingCall,
                             onCall = {
-                                bridgeCall(currentContact)
+                                callContact(currentContact.phone)
                             },
-                            onDialPhone = { dialPhone(currentContact.phone) },
+                            onDialPhone = { callContact(currentContact.phone) },
                             onSkip = {
                                 currentContact.outcome = CallOutcome.SKIPPED
                                 if (isLastContact) {
@@ -386,7 +348,6 @@ fun ActiveCallScreen(
 private fun PreCallContent(
     contact: Contact,
     stages: List<FundingStage>,
-    isPlacingCall: Boolean = false,
     onCall: () -> Unit,
     onDialPhone: () -> Unit,
     onSkip: () -> Unit,
@@ -481,13 +442,12 @@ private fun PreCallContent(
         // Call button
         Button(
             onClick = onCall,
-            enabled = !isPlacingCall,
             modifier = Modifier
                 .weight(1f)
                 .height(56.dp),
             shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = if (isPlacingCall) DyllaGreen.copy(alpha = 0.6f) else DyllaGreen,
+                containerColor = DyllaGreen,
                 contentColor = Color.White
             )
         ) {
@@ -498,7 +458,7 @@ private fun PreCallContent(
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
-                text = if (isPlacingCall) "Calling..." else "Call",
+                text = "Call",
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 15.sp
             )
