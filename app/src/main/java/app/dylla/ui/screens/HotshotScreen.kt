@@ -1,5 +1,6 @@
 package app.dylla.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,6 +36,24 @@ fun HotshotScreen(onDismiss: () -> Unit) {
     var showDeleteConfirm by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
+    // SHAKEN/STIR form state
+    var showTrustForm by remember { mutableStateOf(false) }
+    var trustBusinessName by remember { mutableStateOf("") }
+    var trustBusinessType by remember { mutableStateOf("") }
+    var trustEin by remember { mutableStateOf("") }
+    var trustStreet by remember { mutableStateOf("") }
+    var trustCity by remember { mutableStateOf("") }
+    var trustState by remember { mutableStateOf("") }
+    var trustZip by remember { mutableStateOf("") }
+    var trustPhone by remember { mutableStateOf("") }
+    var trustEmail by remember { mutableStateOf("") }
+    var trustWebsite by remember { mutableStateOf("") }
+    var businessTypeExpanded by remember { mutableStateOf(false) }
+    val businessTypes = listOf(
+        "Sole Proprietorship", "Partnership", "LLC",
+        "Corporation", "Non-Profit", "Other"
+    )
+
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("dylla_prefs", android.content.Context.MODE_PRIVATE) }
     val uid = remember { prefs.getString("dylla_user_uid", "") ?: "" }
@@ -48,6 +67,7 @@ fun HotshotScreen(onDismiss: () -> Unit) {
     val matched = presence.matchedNumber("+$cleanDigits")
 
     LaunchedEffect(Unit) {
+        presence.loadSavedSettings(context)
         presence.loadNumbers(uid)
     }
 
@@ -75,6 +95,431 @@ fun HotshotScreen(onDismiss: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Spacer(modifier = Modifier.height(4.dp))
+
+            // ── CNAM Section ──
+            Card(
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = DyllaSurface)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "Caller ID Name (CNAM)",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = DyllaOnSurface
+                    )
+                    Text(
+                        text = "Business name that shows instead of Spam Likely",
+                        fontSize = 13.sp,
+                        color = DyllaOnSurfaceSecondary
+                    )
+                    if (presence.savedCnam.isNotEmpty()) {
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = DyllaGreen.copy(alpha = 0.15f)
+                        ) {
+                            Text(
+                                text = "Active: ${presence.savedCnam}",
+                                color = DyllaGreen,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                    OutlinedTextField(
+                        value = presence.cnam,
+                        onValueChange = { if (it.length <= 15) presence.cnam = it },
+                        label = { Text("Business Name") },
+                        placeholder = { Text("e.g. SMB Capital") },
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        supportingText = {
+                            Text(
+                                text = "${presence.cnam.length}/15 characters",
+                                fontSize = 12.sp,
+                                color = if (presence.cnam.length >= 15) DyllaOrange else DyllaOnSurfaceSecondary
+                            )
+                        }
+                    )
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                presence.saveCnam(uid, presence.cnam)
+                            }
+                        },
+                        enabled = presence.cnam.isNotEmpty() && !presence.cnamSaving,
+                        colors = ButtonDefaults.buttonColors(containerColor = DyllaBlue),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (presence.cnamSaving) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                color = DyllaOnSurface,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                        Text("Apply to All Numbers")
+                    }
+                }
+            }
+
+            // ── SHAKEN/STIR Section ──
+            Card(
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = DyllaSurface)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "SHAKEN/STIR Registration",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = DyllaOnSurface
+                    )
+                    Text(
+                        text = "Register for A-level call attestation",
+                        fontSize = 13.sp,
+                        color = DyllaOnSurfaceSecondary
+                    )
+
+                    // Status badge
+                    when (presence.trustStatus) {
+                        "twilio-approved" -> {
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = DyllaGreen.copy(alpha = 0.15f)
+                            ) {
+                                Text(
+                                    text = "Verified",
+                                    color = DyllaGreen,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
+                        "pending-review" -> {
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = DyllaOrange.copy(alpha = 0.15f)
+                            ) {
+                                Text(
+                                    text = "Pending Review",
+                                    color = DyllaOrange,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
+                        "twilio-rejected" -> {
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = DyllaRed.copy(alpha = 0.15f)
+                            ) {
+                                Text(
+                                    text = "Rejected",
+                                    color = DyllaRed,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    // No profile yet: show register button or form
+                    if (presence.trustStatus == null) {
+                        if (!showTrustForm) {
+                            Button(
+                                onClick = { showTrustForm = true },
+                                colors = ButtonDefaults.buttonColors(containerColor = DyllaBlue),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Register Business Identity")
+                            }
+                        }
+                    }
+
+                    // Registration form
+                    AnimatedVisibility(visible = showTrustForm && (presence.trustStatus == null || presence.trustStatus == "twilio-rejected")) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            OutlinedTextField(
+                                value = trustBusinessName,
+                                onValueChange = { trustBusinessName = it },
+                                label = { Text("Business Name") },
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+
+                            // Business Type dropdown
+                            ExposedDropdownMenuBox(
+                                expanded = businessTypeExpanded,
+                                onExpandedChange = { businessTypeExpanded = it }
+                            ) {
+                                OutlinedTextField(
+                                    value = trustBusinessType,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Business Type") },
+                                    trailingIcon = {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = businessTypeExpanded)
+                                    },
+                                    shape = RoundedCornerShape(14.dp),
+                                    modifier = Modifier.fillMaxWidth().menuAnchor(),
+                                    singleLine = true
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = businessTypeExpanded,
+                                    onDismissRequest = { businessTypeExpanded = false }
+                                ) {
+                                    businessTypes.forEach { type ->
+                                        DropdownMenuItem(
+                                            text = { Text(type) },
+                                            onClick = {
+                                                trustBusinessType = type
+                                                businessTypeExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            OutlinedTextField(
+                                value = trustEin,
+                                onValueChange = { trustEin = it },
+                                label = { Text("EIN") },
+                                placeholder = { Text("XX-XXXXXXX") },
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                            )
+
+                            OutlinedTextField(
+                                value = trustStreet,
+                                onValueChange = { trustStreet = it },
+                                label = { Text("Street Address") },
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                OutlinedTextField(
+                                    value = trustCity,
+                                    onValueChange = { trustCity = it },
+                                    label = { Text("City") },
+                                    shape = RoundedCornerShape(14.dp),
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true
+                                )
+                                OutlinedTextField(
+                                    value = trustState,
+                                    onValueChange = { if (it.length <= 2) trustState = it.uppercase() },
+                                    label = { Text("State") },
+                                    shape = RoundedCornerShape(14.dp),
+                                    modifier = Modifier.width(80.dp),
+                                    singleLine = true
+                                )
+                            }
+
+                            OutlinedTextField(
+                                value = trustZip,
+                                onValueChange = { if (it.length <= 5) trustZip = it },
+                                label = { Text("ZIP Code") },
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                            )
+
+                            OutlinedTextField(
+                                value = trustPhone,
+                                onValueChange = { trustPhone = it },
+                                label = { Text("Business Phone") },
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+                            )
+
+                            OutlinedTextField(
+                                value = trustEmail,
+                                onValueChange = { trustEmail = it },
+                                label = { Text("Business Email") },
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                            )
+
+                            OutlinedTextField(
+                                value = trustWebsite,
+                                onValueChange = { trustWebsite = it },
+                                label = { Text("Website") },
+                                placeholder = { Text("https://example.com") },
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
+                            )
+
+                            val formValid = trustBusinessName.isNotEmpty() &&
+                                trustBusinessType.isNotEmpty() &&
+                                trustEin.isNotEmpty() &&
+                                trustStreet.isNotEmpty() &&
+                                trustCity.isNotEmpty() &&
+                                trustState.isNotEmpty() &&
+                                trustZip.isNotEmpty() &&
+                                trustPhone.isNotEmpty() &&
+                                trustEmail.isNotEmpty()
+
+                            Button(
+                                onClick = {
+                                    scope.launch {
+                                        val ok = presence.registerTrust(
+                                            uid = uid,
+                                            businessName = trustBusinessName,
+                                            businessType = trustBusinessType,
+                                            ein = trustEin,
+                                            street = trustStreet,
+                                            city = trustCity,
+                                            state = trustState,
+                                            zip = trustZip,
+                                            phone = trustPhone,
+                                            email = trustEmail,
+                                            website = trustWebsite
+                                        )
+                                        if (ok) showTrustForm = false
+                                    }
+                                },
+                                enabled = formValid && !presence.trustLoading,
+                                colors = ButtonDefaults.buttonColors(containerColor = DyllaBlue),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                if (presence.trustLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(18.dp),
+                                        color = DyllaOnSurface,
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                }
+                                Text("Submit for Verification")
+                            }
+                        }
+                    }
+
+                    // Pending: check status button
+                    if (presence.trustStatus == "pending-review") {
+                        Button(
+                            onClick = {
+                                scope.launch { presence.checkTrustStatus(uid) }
+                            },
+                            enabled = !presence.trustLoading,
+                            colors = ButtonDefaults.buttonColors(containerColor = DyllaOrange),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            if (presence.trustLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    color = DyllaOnSurface,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            Text("Check Status")
+                        }
+                    }
+
+                    // Approved: assign numbers
+                    if (presence.trustStatus == "twilio-approved") {
+                        if (presence.trustNumbersAssigned != null && presence.trustNumbersAssigned!! > 0) {
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = DyllaGreen.copy(alpha = 0.15f)
+                            ) {
+                                Text(
+                                    text = "${presence.trustNumbersAssigned} numbers assigned",
+                                    color = DyllaGreen,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
+                        Button(
+                            onClick = {
+                                scope.launch { presence.assignNumbers(uid) }
+                            },
+                            enabled = !presence.trustLoading,
+                            colors = ButtonDefaults.buttonColors(containerColor = DyllaGreen),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            if (presence.trustLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    color = DyllaOnSurface,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            Text("Assign All Numbers")
+                        }
+                    }
+
+                    // Rejected: show reason + resubmit
+                    if (presence.trustStatus == "twilio-rejected") {
+                        if (!presence.trustFailureReason.isNullOrEmpty()) {
+                            Text(
+                                text = "Reason: ${presence.trustFailureReason}",
+                                fontSize = 13.sp,
+                                color = DyllaRed
+                            )
+                        }
+                        if (!showTrustForm) {
+                            Button(
+                                onClick = { showTrustForm = true },
+                                colors = ButtonDefaults.buttonColors(containerColor = DyllaRed),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Resubmit")
+                            }
+                        }
+                    }
+
+                    // Show error if any
+                    if (presence.error != null && (presence.trustLoading || presence.cnamSaving).not()) {
+                        Text(
+                            text = presence.error ?: "",
+                            color = DyllaRed,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+            }
 
             OutlinedTextField(
                 value = phoneInput,

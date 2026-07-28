@@ -1,8 +1,10 @@
 package app.dylla.services
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import app.dylla.DyllaApp
 // PersistenceManager is in the same package
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -39,6 +41,18 @@ class LocalPresenceService {
         private set
     var error by mutableStateOf<String?>(null)
         private set
+
+    // CNAM state
+    var cnam by mutableStateOf("")
+    var savedCnam by mutableStateOf("")
+    var cnamSaving by mutableStateOf(false)
+
+    // SHAKEN/STIR Trust Hub state
+    var trustStatus by mutableStateOf<String?>(null)
+    var trustProfileSid by mutableStateOf<String?>(null)
+    var trustFailureReason by mutableStateOf<String?>(null)
+    var trustNumbersAssigned by mutableStateOf<Int?>(null)
+    var trustLoading by mutableStateOf(false)
 
     private val serverBaseURL: String
         get() = PersistenceManager.loadUserProfile()?.serverBaseURL ?: ""
@@ -171,6 +185,174 @@ class LocalPresenceService {
             numbers = numbers.filter { it.id != numberId }
         } catch (e: Exception) {
             error = e.message
+        }
+    }
+
+    fun loadSavedSettings(context: Context) {
+        val prefs = context.getSharedPreferences("dylla_prefs", Context.MODE_PRIVATE)
+        savedCnam = prefs.getString("dylla_cnam", "") ?: ""
+        cnam = savedCnam
+        trustStatus = prefs.getString("dylla_trust_status", null)
+        trustProfileSid = prefs.getString("dylla_trust_profileSid", null)
+        trustFailureReason = prefs.getString("dylla_trust_failureReason", null)
+        val stored = prefs.getInt("dylla_trust_numbersAssigned", -1)
+        trustNumbersAssigned = if (stored >= 0) stored else null
+    }
+
+    private fun saveSettings(context: Context) {
+        val prefs = context.getSharedPreferences("dylla_prefs", Context.MODE_PRIVATE)
+        prefs.edit().apply {
+            putString("dylla_cnam", savedCnam)
+            trustStatus?.let { putString("dylla_trust_status", it) } ?: remove("dylla_trust_status")
+            trustProfileSid?.let { putString("dylla_trust_profileSid", it) } ?: remove("dylla_trust_profileSid")
+            trustFailureReason?.let { putString("dylla_trust_failureReason", it) } ?: remove("dylla_trust_failureReason")
+            trustNumbersAssigned?.let { putInt("dylla_trust_numbersAssigned", it) } ?: remove("dylla_trust_numbersAssigned")
+            apply()
+        }
+    }
+
+    suspend fun saveCnam(uid: String, cnam: String): Boolean {
+        cnamSaving = true
+        error = null
+        return try {
+            val config = TwilioConfig.load()
+            val body = JSONObject().apply {
+                put("uid", uid)
+                put("twilioSid", config.twilioSid)
+                put("twilioToken", config.twilioToken)
+                put("cnam", cnam)
+            }
+            val result = postJSON("$serverBaseURL/api/spoof/update-cnam", body)
+            if (result?.optBoolean("ok", false) == true) {
+                savedCnam = cnam
+                val ctx = DyllaApp.instance
+                saveSettings(ctx)
+                true
+            } else {
+                error = result?.optString("error") ?: "Failed to update CNAM"
+                false
+            }
+        } catch (e: Exception) {
+            error = e.message
+            false
+        } finally {
+            cnamSaving = false
+        }
+    }
+
+    suspend fun registerTrust(
+        uid: String,
+        businessName: String,
+        businessType: String,
+        ein: String,
+        street: String,
+        city: String,
+        state: String,
+        zip: String,
+        phone: String,
+        email: String,
+        website: String
+    ): Boolean {
+        trustLoading = true
+        error = null
+        return try {
+            val config = TwilioConfig.load()
+            val body = JSONObject().apply {
+                put("uid", uid)
+                put("twilioSid", config.twilioSid)
+                put("twilioToken", config.twilioToken)
+                put("businessName", businessName)
+                put("businessType", businessType)
+                put("ein", ein)
+                put("street", street)
+                put("city", city)
+                put("state", state)
+                put("zip", zip)
+                put("phone", phone)
+                put("email", email)
+                put("website", website)
+            }
+            val result = postJSON("$serverBaseURL/api/trust/register", body)
+            val status = result?.optString("status", "")
+            if (!status.isNullOrEmpty() && status != "null") {
+                trustStatus = status
+                trustProfileSid = result?.optString("profileSid", null)
+                trustFailureReason = null
+                val ctx = DyllaApp.instance
+                saveSettings(ctx)
+                true
+            } else {
+                error = result?.optString("error") ?: "Registration failed"
+                false
+            }
+        } catch (e: Exception) {
+            error = e.message
+            false
+        } finally {
+            trustLoading = false
+        }
+    }
+
+    suspend fun checkTrustStatus(uid: String): Boolean {
+        trustLoading = true
+        error = null
+        return try {
+            val config = TwilioConfig.load()
+            val body = JSONObject().apply {
+                put("uid", uid)
+                put("twilioSid", config.twilioSid)
+                put("twilioToken", config.twilioToken)
+                put("profileSid", trustProfileSid ?: "")
+            }
+            val result = postJSON("$serverBaseURL/api/trust/status", body)
+            val status = result?.optString("status", "")
+            if (!status.isNullOrEmpty() && status != "null") {
+                trustStatus = status
+                trustProfileSid = result?.optString("profileSid", trustProfileSid)
+                trustFailureReason = result?.optString("failureReason", null)
+                    ?.takeIf { it.isNotEmpty() && it != "null" }
+                val ctx = DyllaApp.instance
+                saveSettings(ctx)
+                true
+            } else {
+                error = result?.optString("error") ?: "Failed to check status"
+                false
+            }
+        } catch (e: Exception) {
+            error = e.message
+            false
+        } finally {
+            trustLoading = false
+        }
+    }
+
+    suspend fun assignNumbers(uid: String): Int? {
+        trustLoading = true
+        error = null
+        return try {
+            val config = TwilioConfig.load()
+            val body = JSONObject().apply {
+                put("uid", uid)
+                put("twilioSid", config.twilioSid)
+                put("twilioToken", config.twilioToken)
+                put("profileSid", trustProfileSid ?: "")
+            }
+            val result = postJSON("$serverBaseURL/api/trust/assign-numbers", body)
+            val assigned = result?.optInt("assigned", -1) ?: -1
+            if (assigned >= 0) {
+                trustNumbersAssigned = assigned
+                val ctx = DyllaApp.instance
+                saveSettings(ctx)
+                assigned
+            } else {
+                error = result?.optString("error") ?: "Failed to assign numbers"
+                null
+            }
+        } catch (e: Exception) {
+            error = e.message
+            null
+        } finally {
+            trustLoading = false
         }
     }
 
